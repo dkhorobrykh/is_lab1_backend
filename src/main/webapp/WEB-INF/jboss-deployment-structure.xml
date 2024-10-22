@@ -1,0 +1,10 @@
+<jboss-deployment-structure>
+    <deployment>
+        <exclude-subsystems>
+            <subsystem name="jaxb"/>
+        </exclude-subsystems>
+        <exclusions>
+            <module name="org.eclipse.persistence"/>
+        </exclusions>
+    </deployment>
+</jboss-deployment-structure>
