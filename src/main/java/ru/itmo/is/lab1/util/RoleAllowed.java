@@ -1,2 +1,12 @@
-package ru.itmo.is.lab1.util;public @interface RoleAllowed {
+package ru.itmo.is.lab1.util;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface RoleAllowed {
+    String value(); // Будет принимать одну роль
 }

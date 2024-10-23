@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class ConstraintViolationExceptionMapper implements ExceptionMapper<ConstraintViolationException> {
+
     @Override
     public Response toResponse(ConstraintViolationException exception) {
         List<String> errorList = exception.getConstraintViolations().stream()
