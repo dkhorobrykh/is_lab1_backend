@@ -5,6 +5,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
+import ru.itmo.is.lab1.model.mapper.VehicleMapper;
 import ru.itmo.is.lab1.service.VehicleService;
 
 import java.util.Map;
@@ -17,6 +18,9 @@ public class VehicleQueriesController {
 
     @Inject
     private VehicleService vehicleService;
+
+    @Inject
+    private VehicleMapper vehicleMapper;
 
     @GET
     @Path("group-by-engine-power")
@@ -47,9 +51,7 @@ public class VehicleQueriesController {
     public Response findByEnginePowerRange(@PathParam(value = "minPower") Integer minPower, @PathParam(value = "maxPower") Integer maxPower) {
         var result = vehicleService.findByEnginePowerRange(minPower, maxPower);
 
-        System.out.println(result);
-
-        return Response.ok(result).build();
+        return Response.ok(vehicleMapper.toDto(result)).build();
     }
 
     @GET
@@ -57,6 +59,6 @@ public class VehicleQueriesController {
     public Response findByWheelCountRange(@PathParam(value = "minNumber") Integer minNumber, @PathParam(value = "maxNumber") Integer maxNumber) {
         var result = vehicleService.findByWheelCountRange(minNumber, maxNumber);
 
-        return Response.ok(result).build();
+        return Response.ok(vehicleMapper.toDto(result)).build();
     }
 }

@@ -1,9 +1,17 @@
 package ru.itmo.is.lab1.repository;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.persistence.TypedQuery;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
+import ru.itmo.is.lab1.model.FuelType;
 import ru.itmo.is.lab1.model.Vehicle;
+import ru.itmo.is.lab1.model.VehicleType;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @ApplicationScoped
@@ -57,5 +65,43 @@ public class VehicleRepository extends AbstractRepository<Vehicle, Long> {
                 .setParameter("minNumber", minNumber)
                 .setParameter("maxNumber", maxNumber)
                 .getResultList();
+    }
+
+    public List<Vehicle> findWithFilters(String name, String fuelType, String vehicleType,
+                                         String sortBy, boolean ascending, int page, int size) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Vehicle> cq = cb.createQuery(Vehicle.class);
+        Root<Vehicle> vehicleRoot = cq.from(Vehicle.class);
+
+        List<Predicate> predicates = new ArrayList<>();
+
+        if (name != null && !name.isEmpty()) {
+            predicates.add(cb.like(cb.lower(vehicleRoot.get("name")), "%" + name.toLowerCase() + "%"));
+        }
+
+        if (fuelType != null && !fuelType.isEmpty()) {
+            predicates.add(cb.equal(vehicleRoot.get("fuelType"), FuelType.valueOf(fuelType)));
+        }
+
+        if (vehicleType != null && !vehicleType.isBlank()) {
+            predicates.add(cb.equal(vehicleRoot.get("type"), VehicleType.valueOf(vehicleType)));
+        }
+
+        cq.where(predicates.toArray(new Predicate[0]));
+
+        if (sortBy != null && !sortBy.isEmpty()) {
+            if (ascending) {
+                cq.orderBy(cb.asc(vehicleRoot.get(sortBy)));
+            } else {
+                cq.orderBy(cb.desc(vehicleRoot.get(sortBy)));
+            }
+        }
+
+        TypedQuery<Vehicle> query = entityManager.createQuery(cq);
+
+        query.setFirstResult(page * size);
+        query.setMaxResults(size);
+
+        return query.getResultList();
     }
 }

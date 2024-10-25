@@ -33,9 +33,25 @@ public class VehicleController {
     @Inject
     private RoleService roleService;
 
+//    @GET
+//    public Response getAllVehicles() {
+//        var result = vehicleService.getAll();
+//
+//        return Response
+//                .status(Response.Status.OK)
+//                .entity(vehicleMapper.toDto(result))
+//                .build();
+//    }
+
     @GET
-    public Response getAllVehicles() {
-        var result = vehicleService.getAll();
+    public Response getAllVehicles(@QueryParam("name") String name,
+                                   @QueryParam("fuelType") String fuelType,
+                                   @QueryParam("vehicleType") String vehicleType,
+                                   @QueryParam("sortBy") @DefaultValue("id") String sortBy,
+                                   @QueryParam("ascending") @DefaultValue("true") boolean ascending,
+                                   @QueryParam("page") @DefaultValue("0") int page,
+                                   @QueryParam("size") @DefaultValue("10") int size) {
+        var result = vehicleService.getAllVehiclesWithFilters(name, fuelType, vehicleType, sortBy, ascending, page, size);
 
         return Response
                 .status(Response.Status.OK)
@@ -43,8 +59,10 @@ public class VehicleController {
                 .build();
     }
 
+
     @POST
-    public Response addVehicle(VehicleAddDto dto, @Context SecurityContext securityContext) {
+    @Path("/add")
+    public Response addVehicle(@Valid VehicleAddDto dto, @Context SecurityContext securityContext) {
         var result = vehicleService.addVehicle(dto, securityContext);
 
         return Response
@@ -59,7 +77,8 @@ public class VehicleController {
         User currentUser = roleService.getCurrentUser(securityContext);
         Vehicle vehicle = vehicleService.getById(vehicleId);
 
-        if (!vehicle.getUser().getId().equals(currentUser.getId()))
+        if (!vehicle.getUser().getId().equals(currentUser.getId())
+                && !(vehicle.isCanBeEditedByAdmin() && currentUser.isAdmin()))
             throw new CustomException(ExceptionEnum.FORBIDDEN);
 
         var result = vehicleService.updateVehicle(vehicleId, dto);

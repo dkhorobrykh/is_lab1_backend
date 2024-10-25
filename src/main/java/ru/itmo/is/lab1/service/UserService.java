@@ -12,7 +12,10 @@ import ru.itmo.is.lab1.model.User;
 import ru.itmo.is.lab1.repository.AdminRequestRepository;
 import ru.itmo.is.lab1.repository.UserRepository;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,9 +49,11 @@ public class UserService {
         if (userRepository.findByUsernameIgnoreCase(username).isPresent())
             throw new CustomException(ExceptionEnum.USER_ALREADY_EXISTED);
 
+        String hashedPassword = hashPassword(password);
+
         User user = new User();
         user.setUsername(username);
-        user.setPassword(password);
+        user.setPassword(hashedPassword);
         user = userRepository.save(user);
 
         return jwtProvider.generateAccessToken(user);
@@ -56,7 +61,8 @@ public class UserService {
 
     public String login(String username, String password) {
         var userOpt = userRepository.findByUsernameIgnoreCase(username);
-        if (userOpt.isEmpty() || !userOpt.get().getPassword().equals(password))
+        String hashedPassword = hashPassword(password);
+        if (userOpt.isEmpty() || !userOpt.get().getPassword().equals(hashedPassword))
             throw new CustomException(ExceptionEnum.WRONG_CREDENTIALS);
 
         return jwtProvider.generateAccessToken(userOpt.get());
@@ -124,5 +130,17 @@ public class UserService {
         userRepository.save(user);
 
         log.info("User with id [{}] declined admin request from user with id [{}]", roleService.getCurrentUser(securityContext).getId(), user.getId());
+    }
+
+    public static String hashPassword(String password) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-384");
+            byte[] hashedBytes = md.digest(password.getBytes());
+
+            return Base64.getEncoder().encodeToString(hashedBytes);
+        } catch (NoSuchAlgorithmException e) {
+            log.error("Ошибка хэширования пароля: не найден алгоритм");
+            throw new CustomException(ExceptionEnum.SERVER_ERROR);
+        }
     }
 }

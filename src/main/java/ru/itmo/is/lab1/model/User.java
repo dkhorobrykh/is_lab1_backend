@@ -2,9 +2,8 @@ package ru.itmo.is.lab1.model;
 
 import jakarta.annotation.security.DeclareRoles;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import lombok.extern.jackson.Jacksonized;
 
 @Entity
 @RequiredArgsConstructor
@@ -14,6 +13,10 @@ import lombok.Setter;
         name = "IS_user",
         schema = "s367595"
 )
+@EntityListeners(AuditListener.class)
+@Jacksonized
+@Builder
+@AllArgsConstructor
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

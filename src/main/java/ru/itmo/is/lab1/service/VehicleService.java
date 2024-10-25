@@ -34,6 +34,11 @@ public class VehicleService {
         return vehicleRepository.getAll();
     }
 
+    public List<Vehicle> getAllVehiclesWithFilters(String name, String fuelType, String vehicleType,
+                                                      String sortBy, boolean ascending, int page, int size) {
+        return vehicleRepository.findWithFilters(name, fuelType, vehicleType, sortBy, ascending, page, size);
+    }
+
     public Vehicle getById(Long id) {
         return vehicleRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ExceptionEnum.VEHICLE_NOT_FOUND));

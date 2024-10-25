@@ -17,6 +17,7 @@ import ru.itmo.is.lab1.model.JwtAuthentication;
 import ru.itmo.is.lab1.model.User;
 import ru.itmo.is.lab1.model.dto.UserCredentialDto;
 import ru.itmo.is.lab1.model.mapper.AdminRequestMapper;
+import ru.itmo.is.lab1.model.mapper.UserMapper;
 import ru.itmo.is.lab1.repository.AdminRequestRepository;
 import ru.itmo.is.lab1.service.JwtProvider;
 import ru.itmo.is.lab1.service.RoleService;
@@ -42,6 +43,9 @@ public class UserController {
     @Inject
     private AdminRequestMapper adminRequestMapper;
 
+    @Inject
+    private UserMapper userMapper;
+
     @GET
     @Path("/info")
     public Response getUser(@Context SecurityContext securityContext) {
@@ -49,7 +53,7 @@ public class UserController {
 
         return Response
                 .status(Response.Status.OK)
-                .entity(currentUser)
+                .entity(userMapper.toDto(currentUser))
                 .build();
     }
 

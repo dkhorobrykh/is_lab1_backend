@@ -4,13 +4,16 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import lombok.Data;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 
 @Data
 @Slf4j
+@Setter
+@Getter
+@NoArgsConstructor
 public class ErrorDetails {
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Instant timestamp;
@@ -20,11 +23,11 @@ public class ErrorDetails {
     private String details;
 
     public ErrorDetails(Instant timestamp, ExceptionEnum constant, String details) {
-        setTimestamp(timestamp);
-        setError(constant.getError());
-        setMessage(constant.getMessage());
-        setDetails(details);
-        setStatus(constant.getStatus().getStatusCode());
+        this.timestamp = timestamp;
+        this.error = constant.getError();
+        this.message = constant.getMessage();
+        this.details = details;
+        this.status = constant.getStatus().getStatusCode();
     }
 
     public String toJson() {

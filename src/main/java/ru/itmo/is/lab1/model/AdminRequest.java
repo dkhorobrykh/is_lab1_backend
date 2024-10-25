@@ -2,6 +2,7 @@ package ru.itmo.is.lab1.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.extern.jackson.Jacksonized;
 
 import java.time.Instant;
 
@@ -15,6 +16,8 @@ import java.time.Instant;
 )
 @Builder
 @AllArgsConstructor
+@Jacksonized
+@EntityListeners(AuditListener.class)
 public class AdminRequest {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

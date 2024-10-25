@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.*;
+import lombok.extern.jackson.Jacksonized;
 
 import java.time.ZonedDateTime;
 
@@ -21,6 +22,8 @@ import java.time.ZonedDateTime;
 @ToString
 @RequiredArgsConstructor
 @AllArgsConstructor
+@EntityListeners(AuditListener.class)
+@Jacksonized
 public class Vehicle {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -3,6 +3,7 @@ package ru.itmo.is.lab1.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import lombok.extern.jackson.Jacksonized;
 
 @Entity
 @Table(
@@ -14,6 +15,8 @@ import lombok.*;
 @RequiredArgsConstructor
 @AllArgsConstructor
 @Builder
+@Jacksonized
+@EntityListeners(AuditListener.class)
 public class Coordinates {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

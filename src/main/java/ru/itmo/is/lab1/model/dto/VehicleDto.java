@@ -4,9 +4,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import lombok.Builder;
-import lombok.Data;
-import lombok.Value;
+import lombok.*;
 import lombok.extern.jackson.Jacksonized;
 import ru.itmo.is.lab1.model.FuelType;
 import ru.itmo.is.lab1.model.VehicleType;
@@ -20,6 +18,8 @@ import java.time.ZonedDateTime;
 @Data
 @Builder
 @Jacksonized
+@NoArgsConstructor
+@AllArgsConstructor
 public class VehicleDto implements Serializable {
     @NotNull(message = "Id cannot be null")
     @Min(message = "Id must be greater than 0", value = 1)
@@ -44,10 +44,13 @@ public class VehicleDto implements Serializable {
     FuelType fuelType;
     Long userId;
     private boolean canBeEditedByAdmin;
+    UserDto user;
 
     @Data
     @Builder
     @Jacksonized
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class CoordinateDto implements Serializable {
         Integer id;
         Integer x;

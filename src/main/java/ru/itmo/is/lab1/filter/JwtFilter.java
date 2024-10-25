@@ -11,6 +11,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.ext.Provider;
 import lombok.extern.slf4j.Slf4j;
+import ru.itmo.is.lab1.config.SecurityContextHolder;
 import ru.itmo.is.lab1.exception.CustomException;
 import ru.itmo.is.lab1.exception.ExceptionEnum;
 import ru.itmo.is.lab1.model.JwtAuthentication;
@@ -41,6 +42,7 @@ public class JwtFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext containerRequestContext) throws IOException {
+//        try {
 
         String path = containerRequestContext.getUriInfo().getPath();
 
@@ -95,7 +97,11 @@ public class JwtFilter implements ContainerRequestFilter {
                 return "Bearer";
             }
         };
+        SecurityContextHolder.setContext(securityContext);
         containerRequestContext.setSecurityContext(securityContext);
+//        } finally {
+//            SecurityContextHolder.clear();
+//        }
     }
 
     private boolean isExcludedPath(String path) {

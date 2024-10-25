@@ -23,7 +23,7 @@ public class CustomExceptionMapper implements ExceptionMapper<CustomException> {
     public Response toResponse(CustomException ex) {
         ExceptionEnum exceptionEnum = ex.getExceptionEnum();
 
-        log.warn("CustomException occurred: {}", exceptionEnum, ex);
+//        log.warn("CustomException occurred: {}", exceptionEnum, ex);
 
         return Response.status(exceptionEnum.getStatus())
                 .entity(new ErrorDetails(
