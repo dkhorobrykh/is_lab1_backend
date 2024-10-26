@@ -58,9 +58,6 @@ public class AuditListener {
     }
 
     private void createAuditLog(Class<?> entityClass, Object entity, String operation, Object oldValue, Object newValue) {
-        log.info("Old Value: {}", entityClass.cast(newValue));  // Отладка
-        log.info("New Value: {}", newValue);  // Отладка
-
         SecurityContext securityContext = SecurityContextHolder.getContext();
 
         AuditLog audit = new AuditLog();

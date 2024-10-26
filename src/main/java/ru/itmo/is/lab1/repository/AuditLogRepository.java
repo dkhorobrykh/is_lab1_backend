@@ -2,6 +2,7 @@ package ru.itmo.is.lab1.repository;
 
 import ru.itmo.is.lab1.model.AuditLog;
 
+import java.util.List;
 import java.util.Optional;
 
 public class AuditLogRepository extends AbstractRepository<AuditLog, Long> {
@@ -15,5 +16,11 @@ public class AuditLogRepository extends AbstractRepository<AuditLog, Long> {
                 .setParameter("entityId", entityId)
                 .getResultStream()
                 .findFirst();
+    }
+
+    public List<AuditLog> getAll() {
+        return entityManager.createQuery(
+                "SELECT al FROM AuditLog al ORDER BY al.id DESC", AuditLog.class)
+                .getResultList();
     }
 }

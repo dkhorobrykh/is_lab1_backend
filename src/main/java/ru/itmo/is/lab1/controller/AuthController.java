@@ -1,6 +1,7 @@
 package ru.itmo.is.lab1.controller;
 
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -23,14 +24,14 @@ public class AuthController {
 
     @POST
     @Path("/register")
-    public Response register(UserAuthDto userDto) {
+    public Response register(@Valid UserAuthDto userDto) {
         String token = userService.register(userDto.getUsername(), userDto.getPassword());
         return Response.ok(new JwtResponse(token)).build();
     }
 
     @POST
     @Path("/login")
-    public Response login(UserAuthDto userDto) {
+    public Response login(@Valid UserAuthDto userDto) {
         String token = userService.login(userDto.getUsername(), userDto.getPassword());
         return Response.ok(new JwtResponse(token)).build();
     }

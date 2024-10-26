@@ -37,7 +37,7 @@ public class Vehicle {
     private String name;
 
     @ToString.Exclude
-    @ManyToOne(cascade = CascadeType.ALL, optional = false)
+    @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.PERSIST, CascadeType.REFRESH }, optional = false)
     @JoinColumn(name = "coordinates_id", nullable = false)
     @NotNull(message = "Coordinates cannot be null")
     private Coordinates coordinates;

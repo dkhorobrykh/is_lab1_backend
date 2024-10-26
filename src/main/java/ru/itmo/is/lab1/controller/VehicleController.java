@@ -33,16 +33,6 @@ public class VehicleController {
     @Inject
     private RoleService roleService;
 
-//    @GET
-//    public Response getAllVehicles() {
-//        var result = vehicleService.getAll();
-//
-//        return Response
-//                .status(Response.Status.OK)
-//                .entity(vehicleMapper.toDto(result))
-//                .build();
-//    }
-
     @GET
     public Response getAllVehicles(@QueryParam("name") String name,
                                    @QueryParam("fuelType") String fuelType,
@@ -62,7 +52,7 @@ public class VehicleController {
 
     @POST
     @Path("/add")
-    public Response addVehicle(@Valid VehicleAddDto dto, @Context SecurityContext securityContext) {
+    public Response addVehicle(VehicleAddDto dto, @Context SecurityContext securityContext) {
         var result = vehicleService.addVehicle(dto, securityContext);
 
         return Response
@@ -95,7 +85,8 @@ public class VehicleController {
         User currentUser = roleService.getCurrentUser(securityContext);
         Vehicle vehicle = vehicleService.getById(vehicleId);
 
-        if (!vehicle.getUser().getId().equals(currentUser.getId()))
+        if (!vehicle.getUser().getId().equals(currentUser.getId())
+                && !(vehicle.isCanBeEditedByAdmin() && currentUser.isAdmin()))
             throw new CustomException(ExceptionEnum.FORBIDDEN);
 
         vehicleService.deleteVehicle(vehicleId);
