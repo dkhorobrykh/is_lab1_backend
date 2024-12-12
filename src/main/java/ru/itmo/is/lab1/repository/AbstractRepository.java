@@ -1,9 +1,9 @@
 package ru.itmo.is.lab1.repository;
 
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 
 import java.util.Optional;
 
@@ -22,12 +22,12 @@ public abstract class AbstractRepository<T, ID> {
         return Optional.ofNullable(entityManager.find(entityClass, id));
     }
 
-    @Transactional
-    public T save(T entity) {
+    @Transactional(value = Transactional.TxType.REQUIRED)
+    public T save(@Valid T entity) {
         return entityManager.merge(entity);
     }
 
-    public T update(T entity) {
+    public T update(@Valid T entity) {
         return entityManager.merge(entity);
     }
 

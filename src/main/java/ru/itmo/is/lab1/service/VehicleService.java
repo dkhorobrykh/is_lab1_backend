@@ -3,6 +3,11 @@ package ru.itmo.is.lab1.service;
 import jakarta.ejb.ObjectNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceContext;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.core.SecurityContext;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +16,7 @@ import ru.itmo.is.lab1.exception.ExceptionEnum;
 import ru.itmo.is.lab1.model.Coordinates;
 import ru.itmo.is.lab1.model.Vehicle;
 import ru.itmo.is.lab1.model.dto.VehicleAddDto;
+import ru.itmo.is.lab1.model.dto.VehicleAddDtoCsv;
 import ru.itmo.is.lab1.model.mapper.VehicleMapper;
 import ru.itmo.is.lab1.repository.VehicleRepository;
 
@@ -30,6 +36,11 @@ public class VehicleService {
     @Inject
     private RoleService roleService;
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    private final static Object lock = new Object();
+
     public List<Vehicle> getAll() {
         return vehicleRepository.getAll();
     }
@@ -44,8 +55,12 @@ public class VehicleService {
                 .orElseThrow(() -> new CustomException(ExceptionEnum.VEHICLE_NOT_FOUND));
     }
 
-    public Vehicle addVehicle(VehicleAddDto dto, SecurityContext securityContext) {
-        Vehicle newVehicle = Vehicle.builder()
+    public Vehicle buildVehicle(VehicleAddDto dto, SecurityContext securityContext) {
+        if (dto.getCoordinates() == null) {
+            dto.setCoordinates(new VehicleAddDto.CoordinatesDto(dto.getCoordinatesX(), dto.getCoordinatesY()));
+        }
+
+        return Vehicle.builder()
 
                 .name(dto.getName())
                 .coordinates(
@@ -67,11 +82,26 @@ public class VehicleService {
                 .canBeEditedByAdmin(dto.isCanBeEditedByAdmin())
 
                 .build();
+    }
+
+    @Transactional
+    public Vehicle addVehicle(VehicleAddDto dto, SecurityContext securityContext) {
+        var newVehicle = buildVehicle(dto, securityContext);
 
         return vehicleRepository.save(newVehicle);
     }
 
-    public Vehicle updateVehicle(Long vehicleId, VehicleAddDto dto) throws ObjectNotFoundException {
+    @Transactional
+    public void checkEnginePowerAndNumberOfWheelsUniqueOrThrow(List<Vehicle> data) {
+//        synchronized (lock) {
+            for (var item : data) {
+                if (vehicleRepository.findByEnginePowerAndNumberOfWheels(item.getEnginePower(), item.getNumberOfWheels()).isPresent())
+                    throw new CustomException(ExceptionEnum.VALIDATION_EXCEPTION);
+            }
+//        }
+    }
+
+    public Vehicle updateVehicle(Long vehicleId, VehicleAddDto dto) {
         Vehicle vehicle = getById(vehicleId);
 
         vehicleMapper.updateObjectFromDto(dto, vehicle);
@@ -79,10 +109,11 @@ public class VehicleService {
         return vehicleRepository.save(vehicle);
     }
 
-    public void deleteVehicle(Long vehicleId) throws ObjectNotFoundException {
-        Vehicle vehicle = getById(vehicleId);
-
-        vehicleRepository.delete(vehicle);
+    @Transactional(Transactional.TxType.REQUIRED)
+    public void deleteVehicle(Long vehicleId) {
+        var entity = entityManager.find(Vehicle.class, vehicleId, LockModeType.PESSIMISTIC_WRITE);
+        if (entity == null) throw new CustomException(ExceptionEnum.VEHICLE_NOT_FOUND);
+        entityManager.remove(entity);
     }
 
     public List<List<Long>> groupByEnginePower() {
@@ -103,5 +134,12 @@ public class VehicleService {
 
     public List<Vehicle> findByWheelCountRange(Integer minNumber, Integer maxNumber) {
         return vehicleRepository.findByWheelCountRange(minNumber, maxNumber);
+    }
+
+    @Transactional
+    public void saveAll(List<Vehicle> vehicles) {
+        for (var item: vehicles) {
+            vehicleRepository.save(item);
+        }
     }
 }

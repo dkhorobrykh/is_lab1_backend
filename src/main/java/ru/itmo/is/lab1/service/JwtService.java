@@ -13,7 +13,7 @@ import java.util.Date;
 @ApplicationScoped
 public class JwtService {
     private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-    private final long expiration = 3600000;
+    private final long expiration = 360000000;
 
     public String generateToken(Long userId) {
         return Jwts.builder()

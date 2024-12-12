@@ -2,6 +2,7 @@ package ru.itmo.is.lab1.controller;
 
 import jakarta.ejb.ObjectNotFoundException;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;

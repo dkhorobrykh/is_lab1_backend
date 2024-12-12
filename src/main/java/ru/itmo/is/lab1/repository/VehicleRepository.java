@@ -1,11 +1,13 @@
 package ru.itmo.is.lab1.repository;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.persistence.LockModeType;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import ru.itmo.is.lab1.model.FuelType;
 import ru.itmo.is.lab1.model.Vehicle;
@@ -13,6 +15,7 @@ import ru.itmo.is.lab1.model.VehicleType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @ApplicationScoped
 public class VehicleRepository extends AbstractRepository<Vehicle, Long> {
@@ -29,6 +32,20 @@ public class VehicleRepository extends AbstractRepository<Vehicle, Long> {
                         ORDER BY vehicle.id
                         """, Vehicle.class)
                 .getResultList();
+    }
+
+    @Transactional
+    public Optional<Vehicle> findByEnginePowerAndNumberOfWheels(Long enginePower, Integer numberOfWheels) {
+        return entityManager
+                .createQuery("""
+                        SELECT vehicle
+                        FROM Vehicle vehicle
+                        WHERE vehicle.enginePower = :enginePower AND vehicle.numberOfWheels = :numberOfWheels
+                        """, Vehicle.class)
+                .setParameter("enginePower", enginePower)
+                .setParameter("numberOfWheels", numberOfWheels)
+                .getResultStream()
+                .findAny();
     }
 
     public List<?> groupByEnginePower() {

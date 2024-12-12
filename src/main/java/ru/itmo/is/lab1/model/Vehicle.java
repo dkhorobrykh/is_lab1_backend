@@ -14,8 +14,8 @@ import java.time.ZonedDateTime;
 @Entity
 @Table(
         name = "IS_vehicle",
-        schema = "s367595",
-        uniqueConstraints = {@UniqueConstraint(columnNames = "id")}
+        schema = "s367595"
+//        uniqueConstraints = {@UniqueConstraint(columnNames = "id"), @UniqueConstraint(columnNames = {"number_of_wheels", "capacity"})}
 )
 @Getter
 @Setter
@@ -86,4 +86,7 @@ public class Vehicle {
     @Column(name = "can_be_edited_by_admin")
     @Builder.Default
     private boolean canBeEditedByAdmin = true;
+
+    @Version
+    private Integer version;
 }

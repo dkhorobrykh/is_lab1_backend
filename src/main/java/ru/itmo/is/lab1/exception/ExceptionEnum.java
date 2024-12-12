@@ -18,8 +18,10 @@ public enum ExceptionEnum {
     ADMIN_REQUEST_NOT_FOUND("Заявка на администратора не найдена", Response.Status.NOT_FOUND),
     ACTIVE_ADMIN_REQUEST_ALREADY_EXIST("Активная заявка на администратора уже существует!", Response.Status.CONFLICT),
     ADMIN_REQUEST_IS_NOT_ACTIVE("Заявка на администратора уже обработана ранее", Response.Status.CONFLICT),
-
+    BAD_FILE_FORMAT("Переданный формат файла не поддерживается", Response.Status.BAD_REQUEST),
+    BAD_FILE_CONTENT("В файле содержатся некорректные сущности", Response.Status.BAD_REQUEST),
     SERVER_ERROR("Ошибка сервера", Response.Status.INTERNAL_SERVER_ERROR),
+    VALIDATION_EXCEPTION("Валидация уникальных полей не пройдена", Response.Status.BAD_REQUEST),
     ;
 
     private final String error;

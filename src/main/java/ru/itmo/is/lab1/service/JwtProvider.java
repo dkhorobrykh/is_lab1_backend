@@ -58,7 +58,7 @@ public class JwtProvider {
     }
 
     public String generateAccessToken(User user) {
-        final Instant accessExpirationInstant = Instant.now().plus(30, MINUTES);
+        final Instant accessExpirationInstant = Instant.now().plus(1000000, MINUTES);
         final Date accessExpiration = Date.from(accessExpirationInstant);
 
         return Jwts.builder()

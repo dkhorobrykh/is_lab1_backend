@@ -12,6 +12,8 @@
             <property name="jakarta.persistence.jdbc.password" value="PASS"/>
             <property name="jakarta.persistence.schema-generation.database.action" value="update" />
             <property name="eclipselink.logging.level" value="FINE"/>
+            <property name="eclipselink.jdbc.connection-pool.max" value="1000"/>
+
         </properties>
     </persistence-unit>
 </persistence>

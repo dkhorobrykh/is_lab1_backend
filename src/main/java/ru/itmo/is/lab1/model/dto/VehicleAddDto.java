@@ -30,6 +30,8 @@ public class VehicleAddDto implements Serializable {
     String name;
     @NotNull(message = "Coordinates cannot be null")
     VehicleAddDto.CoordinatesDto coordinates;
+    Integer coordinatesX;
+    Float coordinatesY;
 //    @JsonProperty("vehicleType")
     VehicleType type;
     @Min(message = "EnginePower must be greater than 0", value = 1)

@@ -5,6 +5,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.extern.jackson.Jacksonized;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 @Entity
 @RequiredArgsConstructor
 @Getter
@@ -34,4 +37,5 @@ public class User {
 
     @Column(name = "is_admin")
     private boolean admin;
+
 }
