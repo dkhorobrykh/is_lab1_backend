@@ -41,4 +41,7 @@ public class ImportHistory {
     @Column(name = "is_success", nullable = false)
     private boolean success = false;
 
+    @Column(name = "filename")
+    private String filename;
+
 }

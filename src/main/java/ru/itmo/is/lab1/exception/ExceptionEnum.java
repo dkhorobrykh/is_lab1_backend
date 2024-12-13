@@ -22,6 +22,8 @@ public enum ExceptionEnum {
     BAD_FILE_CONTENT("В файле содержатся некорректные сущности", Response.Status.BAD_REQUEST),
     SERVER_ERROR("Ошибка сервера", Response.Status.INTERNAL_SERVER_ERROR),
     VALIDATION_EXCEPTION("Валидация уникальных полей не пройдена", Response.Status.BAD_REQUEST),
+    FILE_STORAGE_UNAVAILABLE("Файловое хранилище недоступно", Response.Status.INTERNAL_SERVER_ERROR),
+    DATA_BASE_UNAVAILABLE("База данных недоступна", Response.Status.INTERNAL_SERVER_ERROR),
     ;
 
     private final String error;

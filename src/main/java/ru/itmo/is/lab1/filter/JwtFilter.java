@@ -37,7 +37,9 @@ public class JwtFilter implements ContainerRequestFilter {
     private static final List<String> EXCLUDED_PATHS = Arrays.asList(
             "/vehicle",
             "/auth/login",
-            "/auth/register"
+            "/auth/register",
+            "/import/upload",
+            "/import/download/"
     );
 
     @Override
@@ -106,6 +108,7 @@ public class JwtFilter implements ContainerRequestFilter {
 
     private boolean isExcludedPath(String path) {
         return path.contains("/vehicle/query/")
+                || path.contains("/import/download")
                 || EXCLUDED_PATHS.stream().anyMatch(p -> p.equals(path));
     }
 }

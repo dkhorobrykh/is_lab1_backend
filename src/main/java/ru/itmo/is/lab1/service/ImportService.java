@@ -10,6 +10,7 @@ import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.core.SecurityContext;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.input.TeeInputStream;
 import ru.itmo.is.lab1.exception.CustomException;
 import ru.itmo.is.lab1.exception.ExceptionEnum;
 import ru.itmo.is.lab1.model.ImportHistory;
@@ -20,6 +21,7 @@ import ru.itmo.is.lab1.repository.ImportRepository;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
@@ -42,15 +44,29 @@ public class ImportService {
 
     private final static Object lock = new Object();
 
+    @Inject
+    private FileStoreService fileStoreService;
+
     public void importObjects(InputStream inputStream, String filename, SecurityContext securityContext) {
         List<VehicleAddDto> entities;
 
         String content;
-        try {
-            content = readInputStreamAsString(inputStream);
+        byte[] fileBytes;
+
+        filename = filename == null ? "lab2_json_50.json" : roleService.getCurrentUser(securityContext).getId() + "__" + Instant.now().toEpochMilli() + "__" + filename;
+
+        try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+             TeeInputStream teeInputStream = new TeeInputStream(inputStream, byteArrayOutputStream)) {
+
+            content = readInputStreamAsString(teeInputStream);
+
+            fileBytes = byteArrayOutputStream.toByteArray();
+
         } catch (IOException ex) {
+            log.error("Error reading input stream: {}", ex.getMessage());
             return;
         }
+
         InputStream parsedInput = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 
         try {
@@ -71,12 +87,25 @@ public class ImportService {
             }
 
             try {
-                userTransaction.begin();
-                processEntities(entities, securityContext);
-                saveImportHistory(content, entities.size(), securityContext);
-                userTransaction.commit();
-            } catch (ConstraintViolationException violationException) {
-                saveWithException(content, securityContext);
+                userTransaction.begin(); // первая фаза
+                synchronized (lock) {
+                    processEntities(entities, securityContext); // подготовка сущностей бд
+                }
+                saveImportHistory(content, entities.size(), securityContext, filename);
+//                if (1 == 1)
+//                    throw new Exception("TESTING!!!");
+                fileStoreService.uploadFile(filename, fileBytes); // загрузка файла в хранилище
+                userTransaction.commit(); // если ошибок не возникло - все готовы, подтверждаем транзакцию во второй фазе
+            } catch (ConstraintViolationException |
+                     CustomException violationException) { // ошибочный файл, сохраняем ошибку
+
+                if (violationException instanceof CustomException)
+                    if (!((CustomException) violationException).getExceptionEnum().name().equals(ExceptionEnum.VALIDATION_EXCEPTION.name()))
+                        throw violationException;
+//
+//                filename = "error_file_" + filename;
+//                fileStoreService.uploadFile(filename, fileBytes);
+//                saveWithException(content, securityContext, filename);
 
                 try {
                     userTransaction.rollback();
@@ -90,17 +119,39 @@ public class ImportService {
 
         } catch (CustomException ex) {
 
-            saveWithException(content, securityContext);
+            log.error("Error processing file: {}", ex.getMessage());
+
+            filename = "error_file_" + filename;
+
+            if (!ex.getExceptionEnum().name().equals(ExceptionEnum.FILE_STORAGE_UNAVAILABLE.name()))
+                fileStoreService.uploadFile(filename, fileBytes);
+            else
+                filename = null;
+
+            if (!ex.getExceptionEnum().name().equals(ExceptionEnum.DATA_BASE_UNAVAILABLE.name())) {
+                saveWithException(content, securityContext, filename);
+            }
 
             throw ex;
 
         } catch (Exception e) {
 
+            filename = "error_file_" + filename;
+
             log.error(e.getMessage());
 
-            saveWithException(content, securityContext);
+            fileStoreService.uploadFile(filename, fileBytes);
+            saveWithException(content, securityContext, filename);
 
             throw new CustomException(ExceptionEnum.BAD_FILE_CONTENT);
+        } catch (Error error) {
+            try {
+                userTransaction.rollback();
+            } catch (SystemException ex) {
+                log.error("{}", ex.getMessage());
+//                throw new CustomException(ExceptionEnum.SERVER_ERROR);
+            }
+            throw new CustomException(ExceptionEnum.SERVER_ERROR);
         }
     }
 
@@ -114,10 +165,18 @@ public class ImportService {
             log.info("Entity {} successfully processed", i);
             i.getAndIncrement();
         });
-        synchronized (lock) {
+        try {
             vehicleService.checkEnginePowerAndNumberOfWheelsUniqueOrThrow(res);
             vehicleService.saveAll(res);
+        } catch (CustomException ex) {
+            try {
+                userTransaction.rollback();
+                throw ex;
+            } catch (SystemException exception) {
+                log.error("Rollback exception {}", exception.getMessage());
+            }
         }
+
         log.info("Import processing end...");
     }
 
@@ -156,21 +215,28 @@ public class ImportService {
     }
 
     @Transactional
-    public void saveImportHistory(String content, Integer successObjects, SecurityContext securityContext) {
-        importRepository.save(ImportHistory.builder()
-                .user(roleService.getCurrentUser(securityContext))
-                .fileInfo(content)
-                .success(successObjects > 0)
-                .successObjects(successObjects)
-                .build());
+    public void saveImportHistory(String content, Integer successObjects, SecurityContext securityContext, String filename) {
+        try {
+            importRepository.save(ImportHistory.builder()
+                    .user(roleService.getCurrentUser(securityContext))
+                    .fileInfo(content)
+                    .success(successObjects > 0)
+                    .successObjects(successObjects)
+                    .filename(filename)
+                    .build());
+        } catch (Exception ex) {
+            throw new CustomException(ExceptionEnum.DATA_BASE_UNAVAILABLE);
+        }
+
     }
 
-    private void saveWithException(String content, SecurityContext securityContext) {
+    private void saveWithException(String content, SecurityContext securityContext, String filename) {
         try {
             userTransaction.begin();
-            saveImportHistory(content, 0, securityContext);
+            saveImportHistory(content, 0, securityContext, filename);
             userTransaction.commit();
         } catch (CustomException ce) {
+            log.error("Error saving import history: {}", ce.getMessage());
             try {
                 userTransaction.rollback();
             } catch (Exception exception) {
@@ -179,6 +245,7 @@ public class ImportService {
             throw ce;
         } catch (NotSupportedException | SystemException | RollbackException | HeuristicRollbackException |
                  HeuristicMixedException ex) {
+            log.error("Error saving import history: {}", ex.getMessage());
             try {
                 userTransaction.rollback();
             } catch (SystemException exception) {
