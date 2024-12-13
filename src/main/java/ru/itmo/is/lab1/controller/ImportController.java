@@ -30,6 +30,8 @@ public class ImportController {
     @Inject
     private FileStoreService fileStoreService;
 
+    private static final Object lock = new Object();
+
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response importObjects(
@@ -38,7 +40,9 @@ public class ImportController {
             ) {
         String filename = multipartForm.getFilename();
         InputStream uploadedInputStream = multipartForm.getFile();
-        importService.importObjects(uploadedInputStream, filename, securityContext);
+        synchronized (lock) {
+            importService.importObjects(uploadedInputStream, filename, securityContext);
+        }
         return Response.ok().build();
     }
 

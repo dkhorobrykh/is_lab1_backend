@@ -43,6 +43,7 @@ public class ImportService {
     private UserTransaction userTransaction;
 
     private final static Object lock = new Object();
+    private final static Object lock2 = new Object();
 
     @Inject
     private FileStoreService fileStoreService;
@@ -88,13 +89,11 @@ public class ImportService {
 
             try {
                 userTransaction.begin(); // первая фаза
-                synchronized (lock) {
-                    processEntities(entities, securityContext); // подготовка сущностей бд
-                }
-                saveImportHistory(content, entities.size(), securityContext, filename);
-//                if (1 == 1)
-//                    throw new Exception("TESTING!!!");
+                processEntities(entities, securityContext); // подготовка сущностей бд
                 fileStoreService.uploadFile(filename, fileBytes); // загрузка файла в хранилище
+//                if (1 == 1)
+//                    throw new RuntimeException("TESTING");
+                saveImportHistory(content, entities.size(), securityContext, filename);
                 userTransaction.commit(); // если ошибок не возникло - все готовы, подтверждаем транзакцию во второй фазе
             } catch (ConstraintViolationException |
                      CustomException violationException) { // ошибочный файл, сохраняем ошибку
@@ -112,9 +111,12 @@ public class ImportService {
                 } catch (SystemException ex) {
                     log.error("Error with transaction rollback");
                     throw new CustomException(ExceptionEnum.SERVER_ERROR);
-                }
+                } catch (IllegalStateException ignored) {}
 
-                throw new CustomException(ExceptionEnum.BAD_FILE_CONTENT);
+                if (!violationException.getMessage().contains("TESTING"))
+                    throw new CustomException(ExceptionEnum.BAD_FILE_CONTENT);
+                else
+                    throw new CustomException(ExceptionEnum.SERVER_ERROR);
             }
 
         } catch (CustomException ex) {
@@ -122,6 +124,13 @@ public class ImportService {
             log.error("Error processing file: {}", ex.getMessage());
 
             filename = "error_file_" + filename;
+
+            try {
+                userTransaction.rollback();
+            } catch (SystemException e) {
+                log.error("{}", e.getMessage());
+//                throw new CustomException(ExceptionEnum.SERVER_ERROR);
+            } catch (IllegalStateException ignored) {}
 
             if (!ex.getExceptionEnum().name().equals(ExceptionEnum.FILE_STORAGE_UNAVAILABLE.name()))
                 fileStoreService.uploadFile(filename, fileBytes);
@@ -140,44 +149,56 @@ public class ImportService {
 
             log.error(e.getMessage());
 
+            try {
+                userTransaction.rollback();
+            } catch (SystemException exception) {
+                log.error("{}", exception.getMessage());
+//                throw new CustomException(ExceptionEnum.SERVER_ERROR);
+            } catch (IllegalStateException ignored) {}
+
             fileStoreService.uploadFile(filename, fileBytes);
             saveWithException(content, securityContext, filename);
 
-            throw new CustomException(ExceptionEnum.BAD_FILE_CONTENT);
+            if (!e.getMessage().equals("TESTING"))
+                throw new CustomException(ExceptionEnum.BAD_FILE_CONTENT);
+            else
+                throw new CustomException(ExceptionEnum.SERVER_ERROR);
         } catch (Error error) {
             try {
                 userTransaction.rollback();
             } catch (SystemException ex) {
                 log.error("{}", ex.getMessage());
 //                throw new CustomException(ExceptionEnum.SERVER_ERROR);
-            }
+            } catch (IllegalStateException ignored) {}
             throw new CustomException(ExceptionEnum.SERVER_ERROR);
         }
     }
 
     @Transactional
     private void processEntities(@Valid List<VehicleAddDto> entities, SecurityContext securityContext) {
-        log.info("Import processing start...");
-        var res = new LinkedList<Vehicle>();
-        AtomicInteger i = new AtomicInteger(1);
-        entities.forEach(v -> {
-            res.add(vehicleService.buildVehicle(v, securityContext));
-            log.info("Entity {} successfully processed", i);
-            i.getAndIncrement();
-        });
-        try {
-            vehicleService.checkEnginePowerAndNumberOfWheelsUniqueOrThrow(res);
-            vehicleService.saveAll(res);
-        } catch (CustomException ex) {
+        synchronized (lock) {
+            log.info("Import processing start...");
+            var res = new LinkedList<Vehicle>();
+            AtomicInteger i = new AtomicInteger(1);
+            entities.forEach(v -> {
+                res.add(vehicleService.buildVehicle(v, securityContext));
+                log.info("Entity {} successfully processed", i);
+                i.getAndIncrement();
+            });
             try {
-                userTransaction.rollback();
-                throw ex;
-            } catch (SystemException exception) {
-                log.error("Rollback exception {}", exception.getMessage());
+                vehicleService.checkEnginePowerAndNumberOfWheelsUniqueOrThrow(res);
+                vehicleService.saveAll(res);
+            } catch (CustomException ex) {
+                try {
+                    userTransaction.rollback();
+                    throw ex;
+                } catch (SystemException exception) {
+                    log.error("Rollback exception {}", exception.getMessage());
+                }
             }
-        }
 
-        log.info("Import processing end...");
+            log.info("Import processing end...");
+        }
     }
 
     public static VehicleAddDto fromCsv(VehicleAddDtoCsv csv) {
@@ -214,7 +235,6 @@ public class ImportService {
         }
     }
 
-    @Transactional
     public void saveImportHistory(String content, Integer successObjects, SecurityContext securityContext, String filename) {
         try {
             importRepository.save(ImportHistory.builder()
